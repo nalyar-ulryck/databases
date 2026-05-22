@@ -2,6 +2,8 @@
 
 Stack **isolada** das aplicações (`docker-compose.yml` na raiz). Os volumes persistem aqui; redeploy do backend/web **não** recria nem apaga o banco.
 
+**Deploy no Dokploy:** ver **[DOKPLOY.md](./DOKPLOY.md)** (Compose Path + variáveis Environment).
+
 ## Serviços
 
 | Serviço Compose | Container       | Hostname na rede `iluminys_infra` | Porta host (default) |

@@ -1,37 +1,33 @@
-# Infraestrutura persistente Iluminys (Postgres + Redis + MinIO).
-# Deploy **separado** do stack de apps (docker-compose.yml na raiz).
+# Dokploy — VPS com dados já migrados (volumes + rede existentes).
+# Painel: Compose Path = databases/docker-compose.dokploy-vps.yml
 #
-# Subir primeiro (VPS ou local):
-#   cd databases && cp .env.example .env && docker compose up -d
-#
-# Rede partilhada: iluminys_infra (o compose das apps junta-se como external).
+# Antes do 1.º deploy: parar contentores manuais com o mesmo nome
+#   docker stop iluminys_db iluminys_minio iluminys_redis 2>/dev/null; docker rm ...
 
 name: iluminys-databases
 
 services:
   iluminys_db:
     image: pgvector/pgvector:pg18
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: ${PG_USER:-iluminys}
-      POSTGRES_PASSWORD: ${PG_PASSWORD}
-      POSTGRES_DB: ${PG_DB:-iluminys}
+      POSTGRES_USER: ${TEC_PG_USER:-tec}
+      POSTGRES_PASSWORD: ${TEC_PG_PASSWORD}
+      POSTGRES_DB: ${TEC_PG_DB:-tecconcursos}
     volumes:
-      # pgvector:18 — dados em PGDATA=/var/lib/postgresql/18/docker (montar o pai)
       - iluminys_pg_data:/var/lib/postgresql
-      - ./init:/docker-entrypoint-initdb.d:ro
     ports:
       - "${PG_HOST_BIND:-127.0.0.1}:${PG_PORT:-15432}:5432"
     healthcheck:
       test:
         [
           'CMD-SHELL',
-          'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"',
+          'pg_isready -U "$${POSTGRES_USER}" -d iluminys',
         ]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 30s
-    restart: unless-stopped
     networks:
       iluminys_infra:
         aliases:
@@ -39,6 +35,7 @@ services:
 
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
     command: >
       redis-server
       --appendonly yes
@@ -53,7 +50,6 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
-    restart: unless-stopped
     networks:
       iluminys_infra:
         aliases:
@@ -61,23 +57,23 @@ services:
 
   minio:
     image: minio/minio:RELEASE.2025-02-03T21-03-04Z-cpuv1
+    restart: unless-stopped
     environment:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
-      MINIO_BROWSER_REDIRECT_URL: ${MINIO_BROWSER_REDIRECT_URL:-http://127.0.0.1:9001}
-      MINIO_SERVER_URL: ${MINIO_SERVER_URL:-http://127.0.0.1:9000}
+      MINIO_BROWSER_REDIRECT_URL: ${MINIO_BROWSER_REDIRECT_URL:-http://69.62.66.153:9001}
+      MINIO_SERVER_URL: ${MINIO_SERVER_URL:-http://69.62.66.153:9000}
     volumes:
       - iluminys_minio_data:/data
     command: server /data --console-address ":9001"
     ports:
-      - "${MINIO_PORT_BIND:-127.0.0.1}:${MINIO_PORT:-9000}:9000"
-      - "${MINIO_CONSOLE_PORT_BIND:-127.0.0.1}:${MINIO_CONSOLE_PORT:-9001}:9001"
+      - "${MINIO_PORT_BIND:-0.0.0.0}:${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT_BIND:-0.0.0.0}:${MINIO_CONSOLE_PORT:-9001}:9001"
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
       interval: 30s
       timeout: 20s
       retries: 3
-    restart: unless-stopped
     networks:
       iluminys_infra:
         aliases:
@@ -86,12 +82,15 @@ services:
 networks:
   iluminys_infra:
     name: iluminys_infra
-    driver: bridge
+    external: true
 
 volumes:
   iluminys_pg_data:
-    name: iluminys_pg_data
+    external: true
+    name: iluminys-bakendai-tr3fuj_pg_data
   iluminys_redis_data:
-    name: iluminys_redis_data
+    external: true
+    name: iluminys-web-ijnbqc_redis_data
   iluminys_minio_data:
-    name: iluminys_minio_data
+    external: true
+    name: iluminys-web-ijnbqc_minio_data

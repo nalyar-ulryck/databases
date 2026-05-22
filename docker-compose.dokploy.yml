@@ -1,22 +1,20 @@
-# Infraestrutura persistente Iluminys (Postgres + Redis + MinIO).
-# Deploy **separado** do stack de apps (docker-compose.yml na raiz).
+# Dokploy — instalação nova (volumes criados pelo compose).
+# Painel: Compose Path = databases/docker-compose.dokploy.yml
 #
-# Subir primeiro (VPS ou local):
-#   cd databases && cp .env.example .env && docker compose up -d
-#
-# Rede partilhada: iluminys_infra (o compose das apps junta-se como external).
+# Hostnames estáveis na rede (apps usam estes nomes):
+#   iluminys_db, iluminys_redis, iluminys_minio
 
 name: iluminys-databases
 
 services:
   iluminys_db:
     image: pgvector/pgvector:pg18
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ${PG_USER:-iluminys}
       POSTGRES_PASSWORD: ${PG_PASSWORD}
       POSTGRES_DB: ${PG_DB:-iluminys}
     volumes:
-      # pgvector:18 — dados em PGDATA=/var/lib/postgresql/18/docker (montar o pai)
       - iluminys_pg_data:/var/lib/postgresql
       - ./init:/docker-entrypoint-initdb.d:ro
     ports:
@@ -31,7 +29,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
-    restart: unless-stopped
     networks:
       iluminys_infra:
         aliases:
@@ -39,6 +36,7 @@ services:
 
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
     command: >
       redis-server
       --appendonly yes
@@ -53,7 +51,6 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
-    restart: unless-stopped
     networks:
       iluminys_infra:
         aliases:
@@ -61,6 +58,7 @@ services:
 
   minio:
     image: minio/minio:RELEASE.2025-02-03T21-03-04Z-cpuv1
+    restart: unless-stopped
     environment:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
@@ -70,14 +68,13 @@ services:
       - iluminys_minio_data:/data
     command: server /data --console-address ":9001"
     ports:
-      - "${MINIO_PORT_BIND:-127.0.0.1}:${MINIO_PORT:-9000}:9000"
-      - "${MINIO_CONSOLE_PORT_BIND:-127.0.0.1}:${MINIO_CONSOLE_PORT:-9001}:9001"
+      - "${MINIO_PORT_BIND:-0.0.0.0}:${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT_BIND:-0.0.0.0}:${MINIO_CONSOLE_PORT:-9001}:9001"
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
       interval: 30s
       timeout: 20s
       retries: 3
-    restart: unless-stopped
     networks:
       iluminys_infra:
         aliases:
