@@ -1,0 +1,35 @@
+# Overlay VPS: reutiliza volumes Docker dos stacks Dokploy antigos (sem copiar dados).
+# Uso: docker compose -f docker-compose.yml -f docker-compose.migrate-vps.yml up -d
+#
+# Volumes de origem (parar os contentores antigos antes):
+#   Postgres: iluminys-bakendai-tr3fuj_pg_data
+#   MinIO:    iluminys-web-ijnbqc_minio_data
+#   Redis:    iluminys-web-ijnbqc_redis_data
+
+services:
+  iluminys_db:
+    environment:
+      # Deve coincidir com o cluster já inicializado no volume
+      POSTGRES_USER: ${TEC_PG_USER:-tec}
+      POSTGRES_PASSWORD: ${TEC_PG_PASSWORD:?Defina TEC_PG_PASSWORD}
+      POSTGRES_DB: ${TEC_PG_DB:-tecconcursos}
+      # Satisfaz validação do compose base (não re-inicializa se o volume já existe)
+      PG_PASSWORD: ${TEC_PG_PASSWORD}
+    volumes:
+      - iluminys_pg_data:/var/lib/postgresql
+
+  minio:
+    ports:
+      - "${MINIO_PORT_BIND:-0.0.0.0}:${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT_BIND:-0.0.0.0}:${MINIO_CONSOLE_PORT:-9001}:9001"
+
+volumes:
+  iluminys_pg_data:
+    external: true
+    name: iluminys-bakendai-tr3fuj_pg_data
+  iluminys_minio_data:
+    external: true
+    name: iluminys-web-ijnbqc_minio_data
+  iluminys_redis_data:
+    external: true
+    name: iluminys-web-ijnbqc_redis_data

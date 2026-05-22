@@ -1,0 +1,94 @@
+# Infraestrutura persistente Iluminys (Postgres + Redis + MinIO).
+# Deploy **separado** do stack de apps (docker-compose.yml na raiz).
+#
+# Subir primeiro (VPS ou local):
+#   cd databases && cp .env.example .env && docker compose up -d
+#
+# Rede partilhada: iluminys_infra (o compose das apps junta-se como external).
+
+name: iluminys-databases
+
+services:
+  iluminys_db:
+    image: pgvector/pgvector:pg18
+    container_name: iluminys_db
+    environment:
+      POSTGRES_USER: ${PG_USER:-iluminys}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:?Defina PG_PASSWORD em databases/.env}
+      POSTGRES_DB: ${PG_DB:-iluminys}
+    volumes:
+      # pgvector:18 — dados em PGDATA=/var/lib/postgresql/18/docker (montar o pai)
+      - iluminys_pg_data:/var/lib/postgresql
+      - ./init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "${PG_HOST_BIND:-127.0.0.1}:${PG_PORT:-15432}:5432"
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - iluminys_infra
+
+  redis:
+    image: redis:7-alpine
+    container_name: iluminys_redis
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory ${REDIS_MAXMEMORY:-256mb}
+      --maxmemory-policy noeviction
+    volumes:
+      - iluminys_redis_data:/data
+    ports:
+      - "${REDIS_HOST_BIND:-127.0.0.1}:${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - iluminys_infra
+
+  minio:
+    image: minio/minio:RELEASE.2025-02-03T21-03-04Z-cpuv1
+    container_name: iluminys_minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?Defina MINIO_SECRET_KEY em databases/.env}
+      MINIO_BROWSER_REDIRECT_URL: ${MINIO_BROWSER_REDIRECT_URL:-http://127.0.0.1:9001}
+      MINIO_SERVER_URL: ${MINIO_SERVER_URL:-http://127.0.0.1:9000}
+    volumes:
+      - iluminys_minio_data:/data
+    command: server /data --console-address ":9001"
+    ports:
+      - "${MINIO_PORT_BIND:-127.0.0.1}:${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT_BIND:-127.0.0.1}:${MINIO_CONSOLE_PORT:-9001}:9001"
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - iluminys_infra
+
+networks:
+  iluminys_infra:
+    name: iluminys_infra
+    driver: bridge
+
+volumes:
+  iluminys_pg_data:
+    name: iluminys_pg_data
+  iluminys_redis_data:
+    name: iluminys_redis_data
+  iluminys_minio_data:
+    name: iluminys_minio_data

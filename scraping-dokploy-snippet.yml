@@ -1,0 +1,16 @@
+# Fragmento para o projeto Dokploy iluminys-bakendai (scraping).
+# No serviço `api`, adicionar rede e defaults:
+
+# networks:
+#   dokploy-network:
+#     external: true
+#   iluminys_infra:
+#     external: true
+#
+# environment (Dokploy ou defaults no compose):
+#   DB_HOST: iluminys_db
+#   DB_PORT: "5432"
+#   PG_DB: iluminys
+#   MINIO_ENDPOINT: iluminys_minio:9000
+#   MINIO_ACCESS_KEY: minioadmin
+#   MINIO_SECRET_KEY: minioadmin
