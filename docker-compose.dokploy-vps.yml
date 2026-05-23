@@ -1,8 +1,8 @@
 # Dokploy VPS — volume legado (iluminys-bakendai-tr3fuj_pg_data).
 # Compose Path: docker-compose.dokploy-vps.yml
 #
-# No painel Dokploy use só DB_* + PG_* + Redis/MinIO (ver env.dokploy.example).
-# O superuser tec do volume antigo fica só neste ficheiro (arranque do contentor).
+# Credenciais só no Environment (PG_* / MINIO_*). Bind 127.0.0.1 → túnel SSH.
+# Volume antigo: PG_USER=tec (superuser do cluster). Apps ligam com user iluminys na BD.
 
 name: iluminys-databases
 
@@ -11,19 +11,18 @@ services:
     image: pgvector/pgvector:pg18
     restart: unless-stopped
     environment:
-      # Volume criado com user tec — não confundir com PG_USER do painel (iluminys)
-      POSTGRES_USER: tec
-      POSTGRES_PASSWORD: Nosferatus123
-      POSTGRES_DB: iluminys
+      POSTGRES_USER: ${PG_USER:-tec}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:?Defina PG_PASSWORD no Environment}
+      POSTGRES_DB: ${PG_DB:-iluminys}
     volumes:
       - iluminys_pg_data:/var/lib/postgresql
     ports:
-      - "${DB_HOST:-127.0.0.1}:${DB_PORT:-15432}:5432"
+      - "${PG_HOST_BIND:-${DB_HOST:-127.0.0.1}}:${PG_PORT:-${DB_PORT:-15432}}:5432"
     healthcheck:
       test:
         [
           'CMD-SHELL',
-          'pg_isready -U iluminys -d iluminys',
+          'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"',
         ]
       interval: 10s
       timeout: 5s
@@ -61,15 +60,15 @@ services:
     restart: unless-stopped
     environment:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
-      MINIO_BROWSER_REDIRECT_URL: ${MINIO_BROWSER_REDIRECT_URL:-http://69.62.66.153:9001}
-      MINIO_SERVER_URL: ${MINIO_SERVER_URL:-http://69.62.66.153:9000}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?Defina MINIO_SECRET_KEY no Environment}
+      MINIO_BROWSER_REDIRECT_URL: ${MINIO_BROWSER_REDIRECT_URL:-http://127.0.0.1:9001}
+      MINIO_SERVER_URL: ${MINIO_SERVER_URL:-http://127.0.0.1:9000}
     volumes:
       - iluminys_minio_data:/data
     command: server /data --console-address ":9001"
     ports:
-      - "${MINIO_PORT_BIND:-0.0.0.0}:${MINIO_PORT:-9000}:9000"
-      - "${MINIO_CONSOLE_PORT_BIND:-0.0.0.0}:${MINIO_CONSOLE_PORT:-9001}:9001"
+      - "${MINIO_PORT_BIND:-127.0.0.1}:${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT_BIND:-127.0.0.1}:${MINIO_CONSOLE_PORT:-9001}:9001"
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
       interval: 30s

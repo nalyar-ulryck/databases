@@ -4,17 +4,14 @@
 services:
   iluminys_db:
     environment:
-      POSTGRES_USER: ${TEC_PG_USER:-tec}
-      POSTGRES_PASSWORD: ${TEC_PG_PASSWORD:?Defina TEC_PG_PASSWORD}
-      POSTGRES_DB: ${TEC_PG_DB:-tecconcursos}
-      PG_PASSWORD: ${TEC_PG_PASSWORD}
-    volumes:
-      - iluminys_pg_data:/var/lib/postgresql
+      POSTGRES_USER: ${PG_USER:-tec}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:?Defina PG_PASSWORD}
+      POSTGRES_DB: ${PG_DB:-iluminys}
 
   minio:
     ports:
-      - "${MINIO_PORT_BIND:-0.0.0.0}:${MINIO_PORT:-9000}:9000"
-      - "${MINIO_CONSOLE_PORT_BIND:-0.0.0.0}:${MINIO_CONSOLE_PORT:-9001}:9001"
+      - "${MINIO_PORT_BIND:-127.0.0.1}:${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT_BIND:-127.0.0.1}:${MINIO_CONSOLE_PORT:-9001}:9001"
 
 volumes:
   iluminys_pg_data:
