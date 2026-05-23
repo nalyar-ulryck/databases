@@ -22,11 +22,14 @@ Aba **Environment** → copiar de `databases/env.dokploy.example` e preencher:
 
 | Variável | Obrigatório | Notas |
 |----------|-------------|--------|
-| `TEC_PG_PASSWORD` | Sim (VPS) | Senha do superuser `tec` no volume antigo |
-| `MINIO_SECRET_KEY` | Sim | Igual a `MINIO_ACCESS_KEY` se ainda for `minioadmin` |
-| `PG_PASSWORD` | Sim (instalação nova) | Só com `docker-compose.dokploy.yml` |
+| `DB_HOST` | Sim | `127.0.0.1` na VPS (bind + túnel SSH no PC) |
+| `DB_PORT` | Sim | `15432` |
+| `PG_USER` / `PG_PASSWORD` / `PG_DB` | Sim | Login **iluminys** (apps e DBeaver no PC) |
+| `MINIO_SECRET_KEY` | Sim | Ex.: `minioadmin` |
 
-Sem `PG_PASSWORD` / `TEC_PG_PASSWORD` / `MINIO_SECRET_KEY` o Compose **falha na validação** (erro no 1.º deploy).
+**Não** precisa de `TEC_PG_*` no painel — volume legado usa superuser `tec` só dentro de `docker-compose.dokploy-vps.yml`.
+
+Sem `PG_PASSWORD` / `MINIO_SECRET_KEY` o compose novo falha; no VPS legado o Postgres sobe mesmo sem `PG_PASSWORD` no painel (senha `tec` está no ficheiro compose).
 
 ## 3. VPS — antes do primeiro deploy no Dokploy
 
@@ -47,10 +50,11 @@ docker network create iluminys_infra
 
 ## 4. Deploy
 
-1. **Deploy** no projeto `databases` → deve ficar **Done** (3 serviços healthy).
-2. Projeto **iluminys-web** → Environment com `DB_HOST=iluminys_db`, `REDIS_URL=redis://iluminys_redis:6379`, `MINIO_ENDPOINT=iluminys_minio:9000`.
-3. Projeto **iluminys-bakendai** → `DB_HOST=iluminys_db`, `MINIO_ENDPOINT=iluminys_minio:9000`.
-4. Redeploy das apps (ordem: databases → web → scraping).
+1. **Deploy** no projeto `databases` → **Done** (3 serviços healthy).
+2. Projeto **iluminys-web** → copiar `env.dokploy.web.example` (raiz do repo) para Environment.
+3. Projeto **iluminys-bakendai** → `scraping-questions/env.dokploy.example` + compose adicional `docker-compose.dokploy.yml`. Ver [bakendai-dokploy.md](./bakendai-dokploy.md).
+
+Ordem: `databases` → `iluminys-web` (scraping independente).
 
 ## 5. Verificar
 

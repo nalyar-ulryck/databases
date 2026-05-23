@@ -18,7 +18,7 @@ services:
       - iluminys_pg_data:/var/lib/postgresql
       - ./init:/docker-entrypoint-initdb.d:ro
     ports:
-      - "${PG_HOST_BIND:-127.0.0.1}:${PG_PORT:-15432}:5432"
+      - "${DB_HOST:-127.0.0.1}:${DB_PORT:-15432}:5432"
     healthcheck:
       test:
         [

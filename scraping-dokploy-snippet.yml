@@ -1,16 +1,11 @@
-# Fragmento para o projeto Dokploy iluminys-bakendai (scraping).
-# No serviço `api`, adicionar rede e defaults:
-
-# networks:
-#   dokploy-network:
-#     external: true
-#   iluminys_infra:
-#     external: true
+# scraping-questions — NÃO usar o Postgres do projeto Dokploy "databases".
 #
-# environment (Dokploy ou defaults no compose):
-#   DB_HOST: iluminys_db
-#   DB_PORT: "5432"
-#   PG_DB: iluminys
-#   MINIO_ENDPOINT: iluminys_minio:9000
-#   MINIO_ACCESS_KEY: minioadmin
-#   MINIO_SECRET_KEY: minioadmin
+# O stack databases/ na VPS é só para o app Iluminys (sync, notebooks, jobs).
+# O scraping mantém Postgres próprio (local ou profile local-db no compose do scraping).
+#
+# Dokploy iluminys-bakendai — exemplo (scraping no PC ou postgres do próprio stack):
+#   DB_HOST=postgres          # serviço postgres DENTRO do compose scraping, não iluminys_db
+#   PG_DB=tecconcursos        # ou iluminys só se for instância dedicada ao scraping
+#   MINIO_ENDPOINT=...        # MinIO local do scraping, ou vazio se só filesystem
+#
+# Não adicionar rede iluminys_infra ao scraping para DB, salvo integração explícita futura.

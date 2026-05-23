@@ -1,8 +1,8 @@
-# Dokploy — VPS com dados já migrados (volumes + rede existentes).
-# Painel: Compose Path = databases/docker-compose.dokploy-vps.yml
+# Dokploy VPS — volume legado (iluminys-bakendai-tr3fuj_pg_data).
+# Compose Path: docker-compose.dokploy-vps.yml
 #
-# Antes do 1.º deploy: parar contentores manuais com o mesmo nome
-#   docker stop iluminys_db iluminys_minio iluminys_redis 2>/dev/null; docker rm ...
+# No painel Dokploy use só DB_* + PG_* + Redis/MinIO (ver env.dokploy.example).
+# O superuser tec do volume antigo fica só neste ficheiro (arranque do contentor).
 
 name: iluminys-databases
 
@@ -11,18 +11,19 @@ services:
     image: pgvector/pgvector:pg18
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${TEC_PG_USER:-tec}
-      POSTGRES_PASSWORD: ${TEC_PG_PASSWORD}
-      POSTGRES_DB: ${TEC_PG_DB:-tecconcursos}
+      # Volume criado com user tec — não confundir com PG_USER do painel (iluminys)
+      POSTGRES_USER: tec
+      POSTGRES_PASSWORD: Nosferatus123
+      POSTGRES_DB: iluminys
     volumes:
       - iluminys_pg_data:/var/lib/postgresql
     ports:
-      - "${PG_HOST_BIND:-127.0.0.1}:${PG_PORT:-15432}:5432"
+      - "${DB_HOST:-127.0.0.1}:${DB_PORT:-15432}:5432"
     healthcheck:
       test:
         [
           'CMD-SHELL',
-          'pg_isready -U "$${POSTGRES_USER}" -d iluminys',
+          'pg_isready -U iluminys -d iluminys',
         ]
       interval: 10s
       timeout: 5s

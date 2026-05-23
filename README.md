@@ -4,6 +4,8 @@ Stack **isolada** das aplicações (`docker-compose.yml` na raiz). Os volumes pe
 
 **Deploy no Dokploy:** ver **[DOKPLOY.md](./DOKPLOY.md)** (Compose Path + variáveis Environment).
 
+**Limites:** ver **[ARCHITECTURE.md](./ARCHITECTURE.md)** — o Postgres do **scraping-questions** não entra neste stack (fica local / stack próprio).
+
 ## Serviços
 
 | Serviço Compose | Container       | Hostname na rede `iluminys_infra` | Porta host (default) |
