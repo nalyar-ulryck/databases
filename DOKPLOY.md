@@ -16,6 +16,8 @@ Postgres (`iluminys_db`), Redis (`iluminys_redis`) e MinIO (`iluminys_minio`) na
 | **Compose Path** | `databases/docker-compose.dokploy-vps.yml` **(VPS 69.62.66.153)** |
 | | ou `databases/docker-compose.dokploy.yml` **(instalação nova)** |
 
+**Crítico na VPS:** não uses `databases/docker-compose.yml` nem `docker-compose.dokploy.yml` no projeto **databases** — o volume fica `iluminys_pg_data` (vazio) em vez de `iluminys-bakendai-tr3fuj_pg_data` (dados reais). Sintoma: `relation "deck_settings" does not exist` e BD sem tabelas.
+
 O deploy falha se o **Compose Path** apontar para `docker-compose.yml` na raiz (esse ficheiro é só das apps).
 
 ## 2. Environment (obrigatório)
